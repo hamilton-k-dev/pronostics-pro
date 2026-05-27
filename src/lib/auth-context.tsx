@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
+import { useSession, signIn as baSignIn, signOut as baSignOut, signUp as baSignUp } from '@/lib/auth-client';
 
 interface User {
   id: string;
@@ -19,50 +20,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, isPending } = useSession();
 
-  useEffect(() => {
-    const saved = localStorage.getItem('pronostics_user');
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved));
-      } catch {
-        localStorage.removeItem('pronostics_user');
+  const user: User | null = session?.user
+    ? {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name ?? session.user.email.split('@')[0],
       }
-    }
-    setIsLoading(false);
-  }, []);
+    : null;
 
   const signIn = async (email: string, password: string) => {
-    await new Promise((r) => setTimeout(r, 800));
-    const u: User = {
-      id: 'usr_' + Math.random().toString(36).slice(2, 10),
-      email,
-      name: email.split('@')[0],
-    };
-    setUser(u);
-    localStorage.setItem('pronostics_user', JSON.stringify(u));
+    const { error } = await baSignIn.email({ email, password });
+    if (error) throw new Error(error.message ?? 'Identifiants incorrects');
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    await new Promise((r) => setTimeout(r, 800));
-    const u: User = {
-      id: 'usr_' + Math.random().toString(36).slice(2, 10),
-      email,
-      name,
-    };
-    setUser(u);
-    localStorage.setItem('pronostics_user', JSON.stringify(u));
+    const { error } = await baSignUp.email({ email, password, name });
+    if (error) throw new Error(error.message ?? 'Erreur lors de la création du compte');
   };
 
   const signOut = () => {
-    setUser(null);
-    localStorage.removeItem('pronostics_user');
+    baSignOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading: isPending, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

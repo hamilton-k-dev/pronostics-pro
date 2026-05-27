@@ -15,10 +15,12 @@ export default function ConnexionPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
       if (isLogin) {
         await signIn(email, password);
@@ -26,8 +28,8 @@ export default function ConnexionPage() {
         await signUp(email, password, `${firstName} ${lastName}`.trim() || email.split('@')[0]);
       }
       router.push('/compte/tableau-de-bord');
-    } catch {
-      // silent
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     }
     setLoading(false);
   };
@@ -76,6 +78,11 @@ export default function ConnexionPage() {
             </button>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="grid grid-cols-2 gap-3">
